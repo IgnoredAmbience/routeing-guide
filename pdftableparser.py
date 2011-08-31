@@ -7,6 +7,7 @@ from pdfminer.layout import LAParams, LTText
 from pdfminer.utils import fsplit
 from pprint import pprint
 import sys
+import csv
 
 def open_pdf(filename, password=''):
   fp = open(filename, 'rb')
@@ -21,8 +22,8 @@ def page_count(doc):
   return doc.getobj(doc.catalog['Pages'].objid)['Count']
 
 if __name__ == "__main__":
-  #doc = open_pdf('/home/thomas/Rail/RouteingGuide-B-PointLookup.pdf')
-  doc = open_pdf('/home/thomas/Rail/RouteingGuide-C-RouteLookup.pdf')
+  doc = open_pdf('/home/thomas/Rail/RouteingGuide-B-PointLookup.pdf')
+  #doc = open_pdf('/home/thomas/Rail/RouteingGuide-C-RouteLookup.pdf')
   
   Point = Route = False
   pages = page_count(doc)
@@ -38,7 +39,7 @@ if __name__ == "__main__":
   device = PDFPageAggregator(rsrcmgr, laparams=laparams)
   interpreter = PDFPageInterpreter(rsrcmgr, device)
 
-
+  writer = csv.writer(sys.stdout)
   for (pageno, page) in enumerate(doc.get_pages()):
     interpreter.process_page(page)
     layout = device.get_result()  # returns LTPage
@@ -54,10 +55,29 @@ if __name__ == "__main__":
       header_y = reduce(lambda x, o: max(x, o.y0), other, 0)
 
     if header_y:
+      # Strip off header text
       text = filter(lambda obj: obj.y1 < header_y, text)
 
-    html = HTMLConverter(rsrcmgr, sys.stdout)
-    layout._objs = text   # hack
-    html.receive_layout(layout)
+    tabs = sorted(set(map(lambda obj: obj.x0, text)))
 
-    break
+    text.sort(None, lambda obj: obj.x0)
+    text.sort(None, lambda obj: obj.y1, True)
+
+    current = []
+    i = iter(tabs)
+
+    for item in text:
+      while True:
+        try:
+          if i.next() != item.x0:
+            current.append(None)
+          else:
+            current.append(item.get_text().strip())
+            break
+        except StopIteration:
+          i = iter(tabs)
+          writer.writerow(current)
+          current = []
+
+    writer.writerow(current)
+
