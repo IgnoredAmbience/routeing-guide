@@ -21,16 +21,42 @@ def open_pdf(filename, password=''):
 def page_count(doc):
   return doc.getobj(doc.catalog['Pages'].objid)['Count']
 
+class BufferedWriter:
+  def __init__(self, *params, **kwds):
+    self._writer = csv.writer(*params, **kwds)
+    self._buffer = None
+
+  def __del__(self):
+    if self._buffer:
+      self._writer.writerow(self._buffer)
+
+  def writerow(self, row):
+    if self._buffer == None:
+      self._buffer = row
+    elif row[0] == None:
+      self._buffer.extend(row)
+      self._writer.writerow(self._buffer)
+      self._buffer = None
+    else:
+      self._writer.writerow(self._buffer)
+      self._buffer = row
+
+  def writerows(self, rows):
+    for row in rows:
+      self.writerow(row)
+
 if __name__ == "__main__":
-  doc = open_pdf('/home/thomas/Rail/RouteingGuide-B-PointLookup.pdf')
-  #doc = open_pdf('/home/thomas/Rail/RouteingGuide-C-RouteLookup.pdf')
+  doc = open_pdf(sys.argv[1])
   
   Point = Route = False
   pages = page_count(doc)
-  if pages < 100:
+  if pages == 68:
     Point = True
-  elif pages > 1000:
+  elif pages == 1163:
     Route = True
+  else:
+    sys.stderr.write("PDF file not of recognised (NRG) format\n")
+    sys.exit(1)
   
   rsrcmgr = PDFResourceManager()
   laparams = LAParams()
@@ -39,7 +65,8 @@ if __name__ == "__main__":
   device = PDFPageAggregator(rsrcmgr, laparams=laparams)
   interpreter = PDFPageInterpreter(rsrcmgr, device)
 
-  writer = csv.writer(sys.stdout)
+  writer = BufferedWriter(sys.stdout)
+
   for (pageno, page) in enumerate(doc.get_pages()):
     interpreter.process_page(page)
     layout = device.get_result()  # returns LTPage
