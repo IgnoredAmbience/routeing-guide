@@ -34,10 +34,12 @@ class BufferedWriter:
     if self._buffer == None:
       self._buffer = row
     elif row[0] == None:
-      self._buffer.extend(row)
-      self._writer.writerow(self._buffer)
-      self._buffer = None
+      while row[0] == None:
+        del row[0]
+      self._buffer += row
     else:
+      while self._buffer[-1] == None:
+        del self._buffer[-1]
       self._writer.writerow(self._buffer)
       self._buffer = row
 
@@ -52,7 +54,7 @@ if __name__ == "__main__":
   pages = page_count(doc)
   if pages == 68:
     Point = True
-  elif pages == 1163:
+  elif pages == 1143:
     Route = True
   else:
     sys.stderr.write("PDF file not of recognised (NRG) format\n")
