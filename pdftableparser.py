@@ -5,6 +5,7 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator, HTMLConverter
 from pdfminer.layout import LAParams, LTText
 from pdfminer.utils import fsplit
+from pdfminer.pdfdevice import PDFTextDevice
 from pprint import pprint
 import sys
 import csv
@@ -64,7 +65,8 @@ if __name__ == "__main__":
   laparams = LAParams()
   laparams.line_margin = 0    # Forces every line to be absolutely positioned
   laparams.word_margin = 0.2  # Prevents space before narrow characters
-  device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+  #device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+  device = PDFTextDevice(rsrcmgr)
   interpreter = PDFPageInterpreter(rsrcmgr, device)
 
   writer = BufferedWriter(sys.stdout)
